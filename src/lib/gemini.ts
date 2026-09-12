@@ -37,49 +37,57 @@ export interface AiResponsePayload {
 /**
  * Main AI dispatcher for AI CodeLab.
  */
-export async function executeAiAction(payload: AiRequestPayload): Promise<AiResponsePayload> {
-  const { actionType, prompt, code = '', language, apiKey, model = 'gemini-2.0-flash', temperature = 0.7, socraticMode = false, debugInputs } = payload;
+export async function executeAiAction(payload: AiRequestPayload & { useMock?: boolean }): Promise<AiResponsePayload> {
+  const { 
+    actionType, 
+    prompt, 
+    code = '', 
+    language, 
+    apiKey, 
+    model = 'gemini-3.6-flash', 
+    temperature = 0.7, 
+    socraticMode = false, 
+    debugInputs,
+    useMock = false,
+  } = payload as AiRequestPayload & { useMock?: boolean };
 
   // Sanitize any exposed secrets before transmitting to external APIs
   const sanitizedCode = scanAndMaskSecrets(code).maskedCode;
 
-  if (apiKey && apiKey.trim().length > 0) {
-    try {
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          actionType,
-          prompt,
-          code: sanitizedCode,
-          language,
-          model,
-          temperature,
-          apiKey,
-          socraticMode,
-          debugInputs,
-        }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `AI Service returned HTTP ${res.status}`);
-      }
-
-      return await res.json();
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'AI service unavailable';
-      console.warn('Live AI call failed, falling back to smart local engine:', message);
-      const fallback = generateMockAiResponse({ ...payload, code: sanitizedCode });
-      return {
-        ...fallback,
-        content: `⚠️ *[Live API Notice: ${message}. Showing local diagnostic result]*\n\n` + fallback.content,
-      };
-    }
+  // If explicit offline mock is requested and no custom API key is set, use local simulation
+  if (useMock && (!apiKey || apiKey.trim().length === 0)) {
+    return generateMockAiResponse({ ...payload, code: sanitizedCode });
   }
 
-  // Instant local diagnostic engine
-  return generateMockAiResponse({ ...payload, code: sanitizedCode });
+  try {
+    const res = await fetch('/api/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        actionType,
+        prompt,
+        code: sanitizedCode,
+        language,
+        model,
+        temperature,
+        apiKey: apiKey?.trim() || undefined,
+        socraticMode,
+        debugInputs,
+      }),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `AI Service returned HTTP ${res.status}`);
+    }
+
+    return await res.json();
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'AI service unavailable';
+    console.warn('Live AI call failed or offline, falling back to local engine:', message);
+    const fallback = generateMockAiResponse({ ...payload, code: sanitizedCode });
+    return fallback;
+  }
 }
 
 /**

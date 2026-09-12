@@ -3,6 +3,20 @@ import { generateMockAiResponse } from '@/lib/gemini';
 import { AiActionType, SupportedLanguage, DebugInputs } from '@/types';
 import { auditSecurityConcerns, scanAndMaskSecrets } from '@/lib/security';
 
+export async function GET() {
+  const hasServerKey = Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
+  return NextResponse.json({
+    status: 'ok',
+    hasServerKey,
+    activeModel: 'gemini-3.6-flash',
+    supportedModels: [
+      'gemini-3.6-flash',
+      'gemini-flash-latest',
+      'gemini-2.5-pro',
+    ],
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -11,7 +25,7 @@ export async function POST(req: NextRequest) {
       prompt = '',
       code = '',
       language = 'javascript',
-      model = 'gemini-2.0-flash',
+      model = 'gemini-3.6-flash',
       temperature = 0.7,
       apiKey: clientApiKey,
       socraticMode = false,
@@ -31,6 +45,12 @@ export async function POST(req: NextRequest) {
     // Sanitize any exposed secrets before sending to LLM API
     const sanitizedCode = scanAndMaskSecrets(code).maskedCode;
     const apiKey = clientApiKey?.trim() || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+
+    // Resolve requested model to currently active Google Gemini model
+    let activeModel = model || 'gemini-3.6-flash';
+    if (activeModel.includes('2.0-flash') || activeModel.includes('1.5-flash')) {
+      activeModel = 'gemini-3.6-flash';
+    }
 
     // If no API key is configured or offline mode is requested, use high-fidelity local engine
     if (!apiKey) {
@@ -99,7 +119,7 @@ ${dbg.userDescription ? `User's Problem Description:\n${dbg.userDescription}\n` 
 
 Diagnose the root cause, execution trace, fix, and tests in valid JSON format.`;
 
-      const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${apiKey}`;
       const response = await fetch(geminiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -126,11 +146,16 @@ Diagnose the root cause, execution trace, fix, and tests in valid JSON format.`;
               debugReport: parsedReport,
               codeSnippet: parsedReport.fixedCode,
               suggestedReplacement: parsedReport.fixedCode,
+              isLiveAi: true,
+              model: activeModel,
             });
           } catch (parseErr) {
             console.warn('Could not parse JSON response from Gemini, falling back to local engine:', parseErr);
           }
         }
+      } else {
+        const errText = await response.text();
+        console.warn(`Gemini API returned error (${response.status}):`, errText);
       }
 
       // If live call returned error or failed parsing, fallback to local engine
@@ -156,7 +181,7 @@ Diagnose the root cause, execution trace, fix, and tests in valid JSON format.`;
       systemInstruction += ` Generate a comprehensive test suite covering normal inputs, edge cases, empty input, and regression checks.`;
     }
 
-    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${apiKey}`;
     const response = await fetch(geminiEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -170,6 +195,8 @@ Diagnose the root cause, execution trace, fix, and tests in valid JSON format.`;
     });
 
     if (!response.ok) {
+      const errText = await response.text();
+      console.warn(`Gemini API standard action returned error (${response.status}):`, errText);
       const fallback = generateMockAiResponse({ actionType, prompt, code: sanitizedCode, language, socraticMode });
       return NextResponse.json(fallback);
     }
@@ -183,6 +210,8 @@ Diagnose the root cause, execution trace, fix, and tests in valid JSON format.`;
       content: candidateText,
       codeSnippet: extractedCode,
       suggestedReplacement: extractedCode,
+      isLiveAi: true,
+      model: activeModel,
     });
   } catch (error: unknown) {
     console.error('API route exception:', error);

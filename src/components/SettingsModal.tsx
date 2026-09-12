@@ -19,11 +19,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<AiSettings>(currentSettings);
   const [prevSettings, setPrevSettings] = useState<AiSettings>(currentSettings);
+  const [hasServerKey, setHasServerKey] = useState<boolean>(false);
 
   if (currentSettings !== prevSettings) {
     setPrevSettings(currentSettings);
     setFormData(currentSettings);
   }
+
+  React.useEffect(() => {
+    if (isOpen) {
+      fetch('/api/ai')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.hasServerKey) {
+            setHasServerKey(true);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -53,7 +67,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div>
                   <strong>Offline / Demo Showcase Mode</strong>
                   <div className={styles.helperText}>
-                    Use built-in high-quality AI simulations without needing an API key.
+                    Use built-in high-quality AI simulations without making live API calls.
                   </div>
                 </div>
                 <input
@@ -71,22 +85,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <label className={styles.label} htmlFor="input-gemini-key">
                 <span>Google Gemini API Key</span>
                 <span className={styles.helperText}>
-                  {formData.apiKey ? '✓ Key stored in local session' : 'Optional for offline mode'}
+                  {formData.apiKey
+                    ? '✓ Custom key active in session'
+                    : hasServerKey
+                    ? '✓ Gemini API key connected on server'
+                    : 'Optional for offline mode'}
                 </span>
               </label>
               <input
                 id="input-gemini-key"
                 type="password"
                 className={styles.input}
-                placeholder="AIzaSy..."
+                placeholder={hasServerKey ? '•••••••••••••••• (Server Key Connected)' : 'AIzaSy... / AQ.Ab8...'}
                 value={formData.apiKey}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, apiKey: e.target.value }))
-                }
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormData((prev) => ({
+                    ...prev,
+                    apiKey: val,
+                    useMock: val.trim().length > 0 ? false : prev.useMock,
+                  }));
+                }}
                 disabled={formData.useMock}
               />
               <span className={styles.helperText}>
-                Your key stays in your local browser storage and is only passed during live API requests.
+                {hasServerKey
+                  ? 'Server environment has GEMINI_API_KEY configured. You can leave this blank to use the server key or enter a custom key.'
+                  : 'Enter your Google Gemini API key to enable real-time debugging with Google AI Studio.'}
               </span>
             </div>
 
@@ -97,7 +122,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <select
                 id="select-gemini-model"
                 className={styles.input}
-                value={formData.model}
+                value={formData.model || 'gemini-3.6-flash'}
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
@@ -106,9 +131,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 }
                 disabled={formData.useMock}
               >
-                <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recommended: Ultra-fast)</option>
-                <option value="gemini-1.5-flash">Gemini 1.5 Flash (Standard)</option>
-                <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Reasoning)</option>
+                <option value="gemini-3.6-flash">Gemini 3.6 Flash (Recommended: Ultra-fast & Analytical)</option>
+                <option value="gemini-flash-latest">Gemini Flash Latest</option>
+                <option value="gemini-2.5-pro">Gemini 2.5 Pro (Deep Reasoning)</option>
               </select>
             </div>
 

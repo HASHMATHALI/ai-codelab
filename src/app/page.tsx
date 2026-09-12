@@ -25,8 +25,8 @@ import { executeAiAction } from '@/lib/gemini';
 
 const DEFAULT_SETTINGS: AiSettings = {
   apiKey: '',
-  model: 'gemini-2.0-flash',
-  useMock: true,
+  model: 'gemini-3.6-flash',
+  useMock: false,
   temperature: 0.2,
   socraticMode: false,
 };

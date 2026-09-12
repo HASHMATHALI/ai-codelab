@@ -165,7 +165,7 @@ export interface ExecutionResult {
 
 export interface AiSettings {
   apiKey: string;
-  model: 'gemini-2.0-flash' | 'gemini-1.5-flash' | 'gemini-1.5-pro';
+  model: 'gemini-3.6-flash' | 'gemini-flash-latest' | 'gemini-2.5-flash' | 'gemini-2.5-pro' | 'gemini-2.0-flash' | 'gemini-1.5-flash' | 'gemini-1.5-pro' | string;
   useMock: boolean;
   temperature: number;
   socraticMode: boolean;

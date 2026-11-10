@@ -3,17 +3,28 @@ import { generateMockAiResponse } from '@/lib/gemini';
 import { AiActionType, SupportedLanguage, DebugInputs } from '@/types';
 import { auditSecurityConcerns, scanAndMaskSecrets } from '@/lib/security';
 
+const SUPPORTED_MODELS = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-pro'] as const;
+const DEFAULT_MODEL = SUPPORTED_MODELS[0];
+const MAX_CODE_CHARS = 50_000;
+const MAX_PROMPT_CHARS = 8_000;
+
+function callGemini(model: string, apiKey: string, payload: unknown) {
+  // Key travels in a header (never the URL) so it cannot leak into logs or error messages.
+  return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(45_000),
+  });
+}
+
 export async function GET() {
   const hasServerKey = Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
   return NextResponse.json({
     status: 'ok',
     hasServerKey,
-    activeModel: 'gemini-3.6-flash',
-    supportedModels: [
-      'gemini-3.6-flash',
-      'gemini-flash-latest',
-      'gemini-2.5-pro',
-    ],
+    activeModel: DEFAULT_MODEL,
+    supportedModels: SUPPORTED_MODELS,
   });
 }
 
@@ -42,15 +53,21 @@ export async function POST(req: NextRequest) {
       debugInputs?: DebugInputs;
     };
 
+    if (typeof code !== 'string' || typeof prompt !== 'string') {
+      return NextResponse.json({ error: 'code and prompt must be strings' }, { status: 400 });
+    }
+    const debugPayloadSize = debugInputs ? JSON.stringify(debugInputs).length : 0;
+    if (code.length > MAX_CODE_CHARS || prompt.length > MAX_PROMPT_CHARS || debugPayloadSize > MAX_CODE_CHARS + MAX_PROMPT_CHARS) {
+      return NextResponse.json({ error: 'Input too large. Limit code to 50,000 characters and prompts to 8,000.' }, { status: 413 });
+    }
+
     // Sanitize any exposed secrets before sending to LLM API
     const sanitizedCode = scanAndMaskSecrets(code).maskedCode;
     const apiKey = clientApiKey?.trim() || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
     // Resolve requested model to currently active Google Gemini model
-    let activeModel = model || 'gemini-3.6-flash';
-    if (activeModel.includes('2.0-flash') || activeModel.includes('1.5-flash')) {
-      activeModel = 'gemini-3.6-flash';
-    }
+    // Only allow-listed models reach the upstream URL (prevents path injection with the server key).
+    const activeModel = (SUPPORTED_MODELS as readonly string[]).includes(model) ? model : DEFAULT_MODEL;
 
     // If no API key is configured or offline mode is requested, use high-fidelity local engine
     if (!apiKey) {
@@ -67,7 +84,10 @@ export async function POST(req: NextRequest) {
 
     // If debugging mode, invoke Gemini with strict structured uncertainty instructions
     if (actionType === 'debug' || debugInputs) {
-      const dbg = debugInputs || { code: sanitizedCode, language, error: prompt };
+      // Secrets are masked server-side too, so a direct API caller cannot forward them to the LLM.
+      const dbg = debugInputs
+        ? { ...debugInputs, code: scanAndMaskSecrets(String(debugInputs.code ?? '')).maskedCode }
+        : { code: sanitizedCode, language, error: prompt };
       
       const debugSystemInstruction = `You are AI CodeLab's expert debugging and code-understanding engine.
 CRITICAL SAFETY & UNCERTAINTY RULES:
@@ -119,19 +139,14 @@ ${dbg.userDescription ? `User's Problem Description:\n${dbg.userDescription}\n` 
 
 Diagnose the root cause, execution trace, fix, and tests in valid JSON format.`;
 
-      const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${apiKey}`;
-      const response = await fetch(geminiEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const response = await callGemini(activeModel, apiKey, {
           contents: [{ role: 'user', parts: [{ text: `${debugSystemInstruction}\n\n${userDebugPrompt}` }] }],
           generationConfig: {
             temperature: 0.2, // Lower temperature for analytical precision
             maxOutputTokens: 2500,
             responseMimeType: 'application/json',
           },
-        }),
-      });
+        });
 
       if (response.ok) {
         const data = await response.json();
@@ -181,18 +196,13 @@ Diagnose the root cause, execution trace, fix, and tests in valid JSON format.`;
       systemInstruction += ` Generate a comprehensive test suite covering normal inputs, edge cases, empty input, and regression checks.`;
     }
 
-    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${apiKey}`;
-    const response = await fetch(geminiEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const response = await callGemini(activeModel, apiKey, {
         contents: [{ role: 'user', parts: [{ text: `${systemInstruction}\n\nLanguage: ${language}\nCode:\n${sanitizedCode}\n\nPrompt: ${prompt}` }] }],
         generationConfig: {
           temperature: Math.max(0, Math.min(1, Number(temperature) || 0.7)),
           maxOutputTokens: 2048,
         },
-      }),
-    });
+      });
 
     if (!response.ok) {
       const errText = await response.text();

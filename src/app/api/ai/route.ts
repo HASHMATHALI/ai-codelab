@@ -18,6 +18,30 @@ function callGemini(model: string, apiKey: string, payload: unknown) {
   });
 }
 
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+
+/**
+ * Calls the requested model and, when it is overloaded or rate limited, falls
+ * through the other allow-listed models before giving up.
+ */
+async function callGeminiWithFallback(model: string, apiKey: string, payload: unknown) {
+  const candidates = [model, ...SUPPORTED_MODELS.filter((m) => m !== model)];
+  let response: Response | undefined;
+  let usedModel = model;
+  for (const candidate of candidates) {
+    usedModel = candidate;
+    try {
+      response = await callGemini(candidate, apiKey, payload);
+    } catch (err) {
+      console.warn(`Gemini request to ${candidate} failed:`, err instanceof Error ? err.message : err);
+      continue;
+    }
+    if (response.ok || !RETRYABLE_STATUS.has(response.status)) break;
+    console.warn(`Gemini model ${candidate} unavailable (${response.status}), trying next model.`);
+  }
+  return { response, usedModel };
+}
+
 export async function GET() {
   const hasServerKey = Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
   return NextResponse.json({
@@ -139,7 +163,7 @@ ${dbg.userDescription ? `User's Problem Description:\n${dbg.userDescription}\n` 
 
 Diagnose the root cause, execution trace, fix, and tests in valid JSON format.`;
 
-      const response = await callGemini(activeModel, apiKey, {
+      const { response, usedModel } = await callGeminiWithFallback(activeModel, apiKey, {
           contents: [{ role: 'user', parts: [{ text: `${debugSystemInstruction}\n\n${userDebugPrompt}` }] }],
           generationConfig: {
             temperature: 0.2, // Lower temperature for analytical precision
@@ -148,7 +172,7 @@ Diagnose the root cause, execution trace, fix, and tests in valid JSON format.`;
           },
         });
 
-      if (response.ok) {
+      if (response?.ok) {
         const data = await response.json();
         const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (jsonText) {
@@ -162,15 +186,15 @@ Diagnose the root cause, execution trace, fix, and tests in valid JSON format.`;
               codeSnippet: parsedReport.fixedCode,
               suggestedReplacement: parsedReport.fixedCode,
               isLiveAi: true,
-              model: activeModel,
+              model: usedModel,
             });
           } catch (parseErr) {
             console.warn('Could not parse JSON response from Gemini, falling back to local engine:', parseErr);
           }
         }
       } else {
-        const errText = await response.text();
-        console.warn(`Gemini API returned error (${response.status}):`, errText);
+        const errText = response ? await response.text() : 'no response from any model';
+        console.warn(`Gemini API returned error (${response?.status ?? 'network'}):`, errText);
       }
 
       // If live call returned error or failed parsing, fallback to local engine
@@ -196,7 +220,7 @@ Diagnose the root cause, execution trace, fix, and tests in valid JSON format.`;
       systemInstruction += ` Generate a comprehensive test suite covering normal inputs, edge cases, empty input, and regression checks.`;
     }
 
-    const response = await callGemini(activeModel, apiKey, {
+    const { response, usedModel } = await callGeminiWithFallback(activeModel, apiKey, {
         contents: [{ role: 'user', parts: [{ text: `${systemInstruction}\n\nLanguage: ${language}\nCode:\n${sanitizedCode}\n\nPrompt: ${prompt}` }] }],
         generationConfig: {
           temperature: Math.max(0, Math.min(1, Number(temperature) || 0.7)),
@@ -204,9 +228,9 @@ Diagnose the root cause, execution trace, fix, and tests in valid JSON format.`;
         },
       });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.warn(`Gemini API standard action returned error (${response.status}):`, errText);
+    if (!response?.ok) {
+      const errText = response ? await response.text() : 'no response from any model';
+      console.warn(`Gemini API standard action returned error (${response?.status ?? 'network'}):`, errText);
       const fallback = generateMockAiResponse({ actionType, prompt, code: sanitizedCode, language, socraticMode });
       return NextResponse.json(fallback);
     }
@@ -221,7 +245,7 @@ Diagnose the root cause, execution trace, fix, and tests in valid JSON format.`;
       codeSnippet: extractedCode,
       suggestedReplacement: extractedCode,
       isLiveAi: true,
-      model: activeModel,
+      model: usedModel,
     });
   } catch (error: unknown) {
     console.error('API route exception:', error);

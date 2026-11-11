@@ -4,8 +4,7 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(4, 7, 13, 0.75);
-  backdrop-filter: blur(10px);
+  background: rgba(8, 8, 9, 0.75);
   z-index: 200;
   display: flex;
   align-items: center;
@@ -17,9 +16,9 @@
 .modalContent {
   width: 520px;
   max-width: 95vw;
-  background: #0d121d;
+  background: #141416;
   border: 1px solid var(--glass-border-light);
-  border-radius: 12px;
+  border-radius: 2px;
   box-shadow: 0 0 50px rgba(0, 0, 0, 0.9);
   display: flex;
   flex-direction: column;
@@ -28,7 +27,7 @@
 
 .modalHeader {
   padding: 1.25rem;
-  background: rgba(19, 27, 44, 0.9);
+  background: rgba(27, 27, 30, 0.9);
   border-bottom: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
@@ -50,7 +49,7 @@
   color: var(--text-muted);
   width: 30px;
   height: 30px;
-  border-radius: 6px;
+  border-radius: 2px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -93,7 +92,7 @@
   font-family: var(--font-sans);
   font-size: 0.84rem;
   padding: 0.6rem 0.85rem;
-  border-radius: 6px;
+  border-radius: 2px;
   outline: none;
   transition: border-color var(--transition-fast);
 }
@@ -111,7 +110,7 @@
 .modeToggleBox {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--glass-border);
-  border-radius: 8px;
+  border-radius: 2px;
   padding: 0.85rem;
   display: flex;
   flex-direction: column;
@@ -137,7 +136,7 @@
 
 .modalFooter {
   padding: 1rem 1.25rem;
-  background: rgba(11, 16, 28, 0.95);
+  background: rgba(17, 17, 18, 0.95);
   border-top: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
@@ -150,7 +149,7 @@
   border: 1px solid var(--glass-border);
   color: var(--text-muted);
   padding: 0.45rem 0.9rem;
-  border-radius: 6px;
+  border-radius: 2px;
   font-size: 0.8rem;
   cursor: pointer;
 }
@@ -162,10 +161,11 @@
 
 .btnSave {
   background: var(--grad-primary);
+  color: var(--on-accent) !important;
   border: none;
   color: white;
   padding: 0.45rem 1.1rem;
-  border-radius: 6px;
+  border-radius: 2px;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;

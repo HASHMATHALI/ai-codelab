@@ -57,6 +57,34 @@ AI CodeLab is an intelligent programming and debugging studio designed for devel
 
 ---
 
+### 8. ▶️ Real Execution, Not Simulated Output
+
+Code you run is actually run, in the browser, off the main thread:
+
+| Language | Runtime | Notes |
+| :-- | :-- | :-- |
+| Python | CPython on WebAssembly (Pyodide) in a Web Worker | Real tracebacks with real line numbers; lab tests are evaluated in your namespace |
+| SQL | SQLite, through the same runtime | Fresh in-memory database per run; every `SELECT` prints a table |
+| JavaScript | Web Worker | No access to the page's DOM, cookies or storage; top-level `await` works |
+| TypeScript | TypeScript compiler, then the same worker | Types are stripped by the real compiler |
+| C, C++, Java, Go | none | The console says nothing was run. Debug Code still analyses the source |
+
+Every run has a time limit (10 s; 60 s for a first run that downloads a runtime). On expiry the
+worker is terminated, so an infinite loop cannot freeze the page. The result badge names the runtime.
+
+### 9. 🧾 Evidence Hand-off from Run to Debug
+
+When a run fails, the real traceback or failing test is captured into the Debug form
+automatically. The diagnosis then starts from an **observed** error rather than a pasted or
+remembered one, which is what the uncertainty layer's "observed vs. inferred" split depends on.
+
+### 10. ◻︎ Ink-and-Paper Interface
+
+The UI is monochrome on purpose. Colour is reserved for meaning: green for passed or confirmed,
+amber for uncertain, red for failed. No gradients, glow or frosted glass.
+
+---
+
 ## 🛠️ Tech Stack
 
 - **Framework**: [Next.js 16 (App Router)](https://nextjs.org/) with Turbopack bundler

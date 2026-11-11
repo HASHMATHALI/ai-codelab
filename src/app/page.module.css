@@ -27,7 +27,7 @@
 
 .debugFormWrapper {
   padding: 0.65rem 0.85rem;
-  background: rgba(11, 16, 28, 0.5);
+  background: rgba(17, 17, 18, 0.5);
   border-bottom: 1px solid var(--glass-border);
   flex-shrink: 0;
 }
@@ -60,7 +60,7 @@
 .rightHeader {
   height: 44px;
   min-height: 44px;
-  background: rgba(13, 18, 29, 0.95);
+  background: rgba(20, 20, 22, 0.95);
   border-bottom: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
@@ -83,7 +83,7 @@
   font-size: 0.76rem;
   font-weight: 600;
   padding: 0.35rem 0.65rem;
-  border-radius: 6px;
+  border-radius: 2px;
   cursor: pointer;
   white-space: nowrap;
   transition: all var(--transition-fast);
@@ -98,17 +98,17 @@
 }
 
 .rightTab.active {
-  color: #c4b5fd;
-  background: rgba(139, 92, 246, 0.18);
-  border-color: rgba(139, 92, 246, 0.35);
+  color: #f2ede4;
+  background: rgba(242, 237, 228, 0.18);
+  border-color: rgba(242, 237, 228, 0.35);
 }
 
 .rightTabBadge {
-  background: rgba(139, 92, 246, 0.3);
+  background: rgba(242, 237, 228, 0.3);
   color: #ffffff;
   font-size: 0.65rem;
   padding: 0.05rem 0.35rem;
-  border-radius: 8px;
+  border-radius: 2px;
 }
 
 .rightContent {
@@ -130,14 +130,14 @@
 
 .emptyIcon {
   font-size: 2.5rem;
-  background: rgba(139, 92, 246, 0.1);
+  background: rgba(242, 237, 228, 0.1);
   width: 70px;
   height: 70px;
-  border-radius: 50%;
+  border-radius: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  border: 1px solid rgba(242, 237, 228, 0.3);
 }
 
 .emptyTitle {
@@ -163,9 +163,9 @@
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--glass-border);
   padding: 0.85rem 1rem;
-  border-radius: 8px;
+  border-radius: 2px;
   font-size: 0.76rem;
-  color: #cbd5e1;
+  color: #bdb8ae;
 }
 
 .stepItem {
@@ -176,10 +176,11 @@
 
 .stepNum {
   background: var(--accent-primary);
+  color: var(--on-accent) !important;
   color: white;
   width: 18px;
   height: 18px;
-  border-radius: 50%;
+  border-radius: 2px;
   font-size: 0.65rem;
   font-weight: 800;
   display: flex;
@@ -190,10 +191,11 @@
 
 .startDebugBtn {
   background: var(--grad-primary);
+  color: var(--on-accent) !important;
   color: white;
   border: none;
   padding: 0.55rem 1.4rem;
-  border-radius: 8px;
+  border-radius: 2px;
   font-weight: 700;
   font-size: 0.82rem;
   cursor: pointer;
@@ -213,7 +215,7 @@
   background: #10b981;
   color: #ffffff;
   padding: 0.65rem 1.25rem;
-  border-radius: 8px;
+  border-radius: 2px;
   font-weight: 700;
   font-size: 0.82rem;
   box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);

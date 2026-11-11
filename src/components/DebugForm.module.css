@@ -1,9 +1,8 @@
 .compactBar {
-  background: rgba(13, 18, 29, 0.85);
+  background: rgba(20, 20, 22, 0.85);
   border: 1px solid var(--glass-border);
-  border-radius: 10px;
+  border-radius: 2px;
   padding: 0.65rem 0.85rem;
-  backdrop-filter: blur(16px);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -41,23 +40,23 @@
   font-size: 0.74rem;
   font-weight: 600;
   padding: 0.25rem 0.6rem;
-  border-radius: 6px;
+  border-radius: 2px;
   cursor: pointer;
   white-space: nowrap;
   transition: all var(--transition-fast);
 }
 
 .chip:hover {
-  background: rgba(139, 92, 246, 0.15);
-  border-color: rgba(139, 92, 246, 0.4);
-  color: #c4b5fd;
+  background: rgba(242, 237, 228, 0.15);
+  border-color: rgba(242, 237, 228, 0.4);
+  color: #f2ede4;
 }
 
 .chip.active {
-  background: rgba(139, 92, 246, 0.25);
+  background: rgba(242, 237, 228, 0.25);
   border-color: var(--accent-primary);
   color: #ffffff;
-  box-shadow: 0 0 10px rgba(139, 92, 246, 0.25);
+  box-shadow: 0 0 10px rgba(242, 237, 228, 0.25);
 }
 
 .inputRow {
@@ -74,14 +73,14 @@
   font-family: var(--font-mono);
   font-size: 0.78rem;
   padding: 0.45rem 0.75rem;
-  border-radius: 6px;
+  border-radius: 2px;
   outline: none;
   transition: border-color var(--transition-fast);
 }
 
 .errorInput:focus {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 10px rgba(139, 92, 246, 0.25);
+  box-shadow: 0 0 10px rgba(242, 237, 228, 0.25);
 }
 
 .toggleExtraBtn {
@@ -90,7 +89,7 @@
   color: var(--text-secondary);
   font-size: 0.74rem;
   padding: 0.45rem 0.65rem;
-  border-radius: 6px;
+  border-radius: 2px;
   cursor: pointer;
   white-space: nowrap;
   transition: all var(--transition-fast);
@@ -103,18 +102,18 @@
 
 .toggleExtraBtn.active {
   border-color: var(--accent-primary);
-  color: #c4b5fd;
-  background: rgba(139, 92, 246, 0.15);
+  color: #f2ede4;
+  background: rgba(242, 237, 228, 0.15);
 }
 
 .debugBtn {
-  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-  border: 1px solid rgba(139, 92, 246, 0.5);
+  background: linear-gradient(135deg, #f2ede4 0%, #f2ede4 100%);
+  border: 1px solid rgba(242, 237, 228, 0.5);
   color: #ffffff;
   font-weight: 700;
   font-size: 0.82rem;
   padding: 0.45rem 1.15rem;
-  border-radius: 6px;
+  border-radius: 2px;
   cursor: pointer;
   box-shadow: var(--glow-violet);
   transition: all var(--transition-fast);
@@ -137,17 +136,17 @@
 .explainBtn {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--glass-border);
-  color: #c4b5fd;
+  color: #f2ede4;
   font-weight: 600;
   font-size: 0.76rem;
   padding: 0.45rem 0.75rem;
-  border-radius: 6px;
+  border-radius: 2px;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .explainBtn:hover {
-  background: rgba(139, 92, 246, 0.15);
+  background: rgba(242, 237, 228, 0.15);
 }
 
 .extraDetailsRow {
@@ -172,7 +171,7 @@
   font-family: var(--font-sans);
   font-size: 0.78rem;
   padding: 0.4rem 0.65rem;
-  border-radius: 6px;
+  border-radius: 2px;
   outline: none;
 }
 
@@ -184,7 +183,7 @@
   background: rgba(245, 158, 11, 0.12);
   border: 1px solid rgba(245, 158, 11, 0.3);
   padding: 0.35rem 0.65rem;
-  border-radius: 6px;
+  border-radius: 2px;
   color: #fde68a;
   font-size: 0.72rem;
   display: flex;

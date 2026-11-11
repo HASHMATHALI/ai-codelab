@@ -11,7 +11,7 @@
 .assistantHeader {
   height: 48px;
   min-height: 48px;
-  background: rgba(13, 18, 29, 0.95);
+  background: rgba(20, 20, 22, 0.95);
   border-bottom: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
@@ -30,6 +30,7 @@
 
 .headerSparkle {
   background: var(--grad-primary);
+  color: var(--on-accent) !important;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   font-size: 1.1rem;
@@ -39,7 +40,7 @@
   display: flex;
   align-items: center;
   padding: 0.5rem 0.75rem;
-  background: rgba(11, 16, 28, 0.6);
+  background: rgba(17, 17, 18, 0.6);
   border-bottom: 1px solid var(--glass-border);
   gap: 0.35rem;
   overflow-x: auto;
@@ -52,7 +53,7 @@
   font-size: 0.76rem;
   font-weight: 600;
   padding: 0.35rem 0.65rem;
-  border-radius: 6px;
+  border-radius: 2px;
   cursor: pointer;
   white-space: nowrap;
   transition: all var(--transition-fast);
@@ -67,10 +68,10 @@
 }
 
 .tabItem.active {
-  color: #c4b5fd;
-  background: rgba(139, 92, 246, 0.15);
-  border-color: rgba(139, 92, 246, 0.35);
-  box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
+  color: #f2ede4;
+  background: rgba(242, 237, 228, 0.15);
+  border-color: rgba(242, 237, 228, 0.35);
+  box-shadow: 0 0 12px rgba(242, 237, 228, 0.2);
 }
 
 .chatFeed {
@@ -87,7 +88,7 @@
   flex-direction: column;
   gap: 0.5rem;
   padding: 0.85rem 1rem;
-  border-radius: 10px;
+  border-radius: 2px;
   font-size: 0.84rem;
   line-height: 1.5;
   animation: fadeIn 0.25s ease-out forwards;
@@ -95,19 +96,18 @@
 
 .messageBubble.user {
   align-self: flex-end;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(99, 102, 241, 0.2) 100%);
-  border: 1px solid rgba(139, 92, 246, 0.4);
-  color: #f8fafc;
+  background: linear-gradient(135deg, rgba(242, 237, 228, 0.25) 0%, rgba(242, 237, 228, 0.2) 100%);
+  border: 1px solid rgba(242, 237, 228, 0.4);
+  color: #f2ede4;
   max-width: 85%;
 }
 
 .messageBubble.assistant {
   align-self: flex-start;
-  background: rgba(19, 27, 44, 0.7);
+  background: rgba(27, 27, 30, 0.7);
   border: 1px solid var(--glass-border);
   color: var(--text-primary);
   max-width: 95%;
-  backdrop-filter: blur(12px);
 }
 
 .messageHeader {
@@ -124,9 +124,9 @@
 }
 
 .codeSnippetBlock {
-  background: #090d16;
+  background: #0c0c0d;
   border: 1px solid var(--glass-border);
-  border-radius: 8px;
+  border-radius: 2px;
   overflow: hidden;
   margin-top: 0.5rem;
 }
@@ -148,18 +148,19 @@
   font-family: var(--font-mono);
   font-size: 0.78rem;
   line-height: 1.45;
-  color: #e2e8f0;
+  color: #d9d4c9;
   overflow-x: auto;
 }
 
 .applyCodeBtn {
   background: var(--accent-primary);
+  color: var(--on-accent) !important;
   color: white;
   border: none;
   font-size: 0.72rem;
   font-weight: 600;
   padding: 0.25rem 0.6rem;
-  border-radius: 4px;
+  border-radius: 2px;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -170,9 +171,9 @@
 }
 
 .complexityCard {
-  background: rgba(6, 182, 212, 0.08);
-  border: 1px solid rgba(6, 182, 212, 0.25);
-  border-radius: 8px;
+  background: rgba(242, 237, 228, 0.08);
+  border: 1px solid rgba(242, 237, 228, 0.25);
+  border-radius: 2px;
   padding: 0.75rem;
   display: flex;
   flex-direction: column;
@@ -191,14 +192,14 @@
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  background: rgba(6, 182, 212, 0.2);
-  color: #67e8f9;
+  border-radius: 2px;
+  background: rgba(242, 237, 228, 0.2);
+  color: #f2ede4;
 }
 
 .compExplanation {
   font-size: 0.76rem;
-  color: #94a3b8;
+  color: #9a958b;
 }
 
 .quickChips {
@@ -208,7 +209,7 @@
   padding: 0.5rem 0.85rem;
   overflow-x: auto;
   border-top: 1px solid var(--glass-border);
-  background: rgba(9, 13, 22, 0.7);
+  background: rgba(12, 12, 13, 0.7);
 }
 
 .chipBtn {
@@ -217,7 +218,7 @@
   color: var(--text-secondary);
   font-size: 0.72rem;
   padding: 0.25rem 0.6rem;
-  border-radius: 14px;
+  border-radius: 2px;
   cursor: pointer;
   white-space: nowrap;
   transition: all var(--transition-fast);
@@ -226,12 +227,12 @@
 .chipBtn:hover {
   color: var(--text-primary);
   border-color: var(--glass-border-hover);
-  background: rgba(139, 92, 246, 0.1);
+  background: rgba(242, 237, 228, 0.1);
 }
 
 .inputContainer {
   padding: 0.85rem;
-  background: rgba(13, 18, 29, 0.95);
+  background: rgba(20, 20, 22, 0.95);
   border-top: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
@@ -251,7 +252,7 @@
   font-family: var(--font-sans);
   font-size: 0.84rem;
   padding: 0.65rem 0.85rem;
-  border-radius: 8px;
+  border-radius: 2px;
   outline: none;
   resize: none;
   min-height: 44px;
@@ -261,16 +262,17 @@
 
 .promptInput:focus {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
+  box-shadow: 0 0 12px rgba(242, 237, 228, 0.2);
 }
 
 .sendBtn {
   width: 44px;
   height: 44px;
   background: var(--grad-primary);
+  color: var(--on-accent) !important;
   border: none;
   color: white;
-  border-radius: 8px;
+  border-radius: 2px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -296,9 +298,9 @@
   align-items: center;
   gap: 0.45rem;
   font-size: 0.72rem;
-  color: #c4b5fd;
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.25);
+  color: #f2ede4;
+  background: rgba(242, 237, 228, 0.1);
+  border: 1px solid rgba(242, 237, 228, 0.25);
   padding: 0.35rem 0.65rem;
-  border-radius: 6px;
+  border-radius: 2px;
 }

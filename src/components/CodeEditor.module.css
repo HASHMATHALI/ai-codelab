@@ -11,7 +11,7 @@
 .editorHeader {
   height: 42px;
   min-height: 42px;
-  background: rgba(13, 18, 29, 0.9);
+  background: rgba(20, 20, 22, 0.9);
   border-bottom: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
@@ -33,7 +33,7 @@
   font-family: var(--font-mono);
   font-size: 0.78rem;
   padding: 0.28rem 0.6rem;
-  border-radius: 6px;
+  border-radius: 2px;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -65,7 +65,7 @@
   font-size: 0.75rem;
   font-family: var(--font-sans);
   padding: 0.3rem 0.65rem;
-  border-radius: 6px;
+  border-radius: 2px;
   cursor: pointer;
   transition: all var(--transition-fast);
   display: flex;
@@ -85,7 +85,7 @@
   color: #ffffff;
   font-weight: 700;
   padding: 0.35rem 0.95rem;
-  border-radius: 6px;
+  border-radius: 2px;
   box-shadow: var(--glow-emerald);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -123,7 +123,7 @@
   font-size: 0.82rem;
   line-height: 1.55rem;
   user-select: none;
-  background: rgba(9, 13, 22, 0.95);
+  background: rgba(12, 12, 13, 0.95);
   border-right: 1px solid rgba(255, 255, 255, 0.04);
   overflow: hidden;
 }
@@ -144,7 +144,7 @@
   height: 100%;
   padding: 1rem;
   background: transparent;
-  color: #f1f5f9;
+  color: #f2ede4;
   font-family: var(--font-mono);
   font-size: 0.84rem;
   line-height: 1.55rem;
@@ -159,13 +159,13 @@
 }
 
 .codeTextarea::selection {
-  background: rgba(139, 92, 246, 0.35);
+  background: rgba(242, 237, 228, 0.35);
 }
 
 .editorFooter {
   height: 28px;
   min-height: 28px;
-  background: rgba(13, 18, 29, 0.95);
+  background: rgba(20, 20, 22, 0.95);
   border-top: 1px solid var(--glass-border);
   display: flex;
   align-items: center;

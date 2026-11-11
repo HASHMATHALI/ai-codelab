@@ -4,6 +4,14 @@ import React, { useState } from 'react';
 import styles from './OutputConsole.module.css';
 import { ExecutionResult, SupportedLanguage } from '@/types';
 
+/** Where the code actually ran, shown next to the result so nothing is passed off as real when it is not. */
+const RUNTIME_LABEL: Partial<Record<SupportedLanguage, string>> = {
+  python: 'CPython on WebAssembly',
+  sql: 'SQLite',
+  javascript: 'Web Worker',
+  typescript: 'Web Worker',
+};
+
 interface OutputConsoleProps {
   result: ExecutionResult;
   language: SupportedLanguage;
@@ -61,13 +69,18 @@ export const OutputConsole: React.FC<OutputConsoleProps> = ({
         </div>
 
         <div className={styles.metaGroup}>
-          {result.status !== 'idle' && (
+          {result.status === 'running' && (
+            <span className={styles.executionBadge}>Running…</span>
+          )}
+          {(result.status === 'success' || result.status === 'error') && (
             <span
               className={`${styles.executionBadge} ${
                 result.status === 'success' ? styles.success : styles.error
               }`}
+              title={RUNTIME_LABEL[language] ?? undefined}
             >
               {result.status === 'success' ? '✓ Finished' : '✗ Failed'} ({result.executionTimeMs}ms)
+              {result.isActualExecution && RUNTIME_LABEL[language] ? ` · ${RUNTIME_LABEL[language]}` : ''}
             </span>
           )}
 
@@ -93,7 +106,7 @@ export const OutputConsole: React.FC<OutputConsoleProps> = ({
               </div>
             ) : null}
 
-            {result.error && <div className={styles.stderr}>⚠️ {result.error}</div>}
+            {result.error && <pre className={styles.stderr}>{result.error}</pre>}
           </>
         )}
 

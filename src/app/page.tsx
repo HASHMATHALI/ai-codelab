@@ -217,8 +217,24 @@ export default function StudioPage() {
     setIsRunning(true);
     setExecutionResult((prev) => ({ ...prev, status: 'running' }));
     try {
-      const result = await executeCodeInBrowser(code, language, activeChallenge);
+      const result = await executeCodeInBrowser(code, language, activeChallenge, (message) =>
+        setExecutionResult((prev) => ({ ...prev, output: message, status: 'running' }))
+      );
       setExecutionResult(result);
+      // Evidence hand-off: a real failure becomes the debugger's input, so the AI
+      // diagnoses what actually happened instead of what someone typed by hand.
+      if (result.isActualExecution && result.status === 'error') {
+        const failedTests = (result.testResults ?? []).filter((t) => !t.passed);
+        const observed =
+          result.error ||
+          failedTests
+            .map((t) => `Test "${t.name}" failed: expected ${t.expected}, got ${t.actual ?? t.error}`)
+            .join('\n');
+        if (observed) {
+          setDebugInputs((prev) => ({ ...prev, code, language, error: observed, actualOutput: result.output || prev.actualOutput }));
+          showToast('Captured the real error for Debug Code');
+        }
+      }
     } catch (err: unknown) {
       setExecutionResult({
         output: '',

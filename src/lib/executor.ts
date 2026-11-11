@@ -1,164 +1,188 @@
 import { ExecutionResult, LabChallenge, SupportedLanguage } from '@/types';
 
 /**
- * Sandboxed execution engine for running code and evaluating PBL test cases.
+ * Real in-browser execution.
+ *
+ * - JavaScript / TypeScript run in a Web Worker (no DOM, cookie or storage access).
+ * - Python runs on Pyodide (CPython compiled to WebAssembly) in a Web Worker.
+ * - SQL runs on SQLite through the same Python runtime.
+ * - Other languages have no browser runtime, and the result says so plainly
+ *   instead of inventing output.
+ *
+ * Every run has a time limit; on expiry the worker is terminated, so an
+ * infinite loop can never freeze the page.
  */
-export async function executeCodeInBrowser(
-  code: string,
-  language: SupportedLanguage,
-  challenge: LabChallenge | null
-): Promise<ExecutionResult> {
-  const startTime = performance.now();
-  const logs: string[] = [];
 
-  // Override console methods to capture logs cleanly
-  const originalLog = console.log;
-  const originalWarn = console.warn;
-  const originalError = console.error;
+type WorkerKind = 'python' | 'js';
 
-  const capturedConsole = {
-    log: (...args: unknown[]) => {
-      logs.push(args.map(formatLogArg).join(' '));
-    },
-    warn: (...args: unknown[]) => {
-      logs.push('[WARN] ' + args.map(formatLogArg).join(' '));
-    },
-    error: (...args: unknown[]) => {
-      logs.push('[ERROR] ' + args.map(formatLogArg).join(' '));
-    },
-  };
+interface TestValue {
+  json: string | null;
+  str: string;
+  repr: string;
+}
+interface WorkerTest {
+  ok: boolean;
+  value?: TestValue;
+  error?: string;
+}
+interface WorkerReply {
+  id: number;
+  type: 'status' | 'done' | 'error';
+  message?: string;
+  logs?: string[];
+  tests?: WorkerTest[];
+  error?: string;
+}
 
+const RUN_LIMIT_MS = 10_000;
+/** A first run may also download its runtime, so it gets longer. */
+const COLD_START_LIMIT_MS = 60_000;
+
+const workers: Partial<Record<WorkerKind, Worker>> = {};
+const warmed: Partial<Record<WorkerKind, boolean>> = {};
+let nextId = 1;
+
+function getWorker(kind: WorkerKind): Worker {
+  if (!workers[kind]) {
+    workers[kind] = new Worker(kind === 'python' ? '/workers/python-worker.js' : '/workers/js-worker.js');
+  }
+  return workers[kind]!;
+}
+
+function discardWorker(kind: WorkerKind) {
+  workers[kind]?.terminate();
+  delete workers[kind];
+  delete warmed[kind];
+}
+
+/** True when the reported value matches the expected string of a test case. */
+export function matchesExpected(value: TestValue, expected: string): boolean {
+  const want = expected.trim();
+  if (value.json === want || value.str === want || value.repr === want) return true;
+  // Tolerate formatting differences such as spacing or key order in JSON.
   try {
-    if (language === 'javascript' || language === 'typescript') {
-      // Create sandboxed runner with captured console
-      const runner = new Function('console', `
-        ${code}
-      `);
-      runner(capturedConsole);
-
-      // Evaluate challenge test cases if available
-      const testResults: ExecutionResult['testResults'] = [];
-      if (challenge && challenge.testCases && challenge.testCases.length > 0) {
-        for (const tc of challenge.testCases) {
-          try {
-            if (!tc.input) continue;
-            // Execute the test expression in context with user code
-            const testFn = new Function('console', `
-              ${code}
-              return (${tc.input});
-            `);
-            const actualValue = testFn({ log: () => {}, warn: () => {}, error: () => {} });
-            const actualStr = JSON.stringify(actualValue) ?? String(actualValue);
-            const passed = actualStr === tc.expected || String(actualValue) === tc.expected;
-
-            testResults.push({
-              passed,
-              name: tc.description,
-              actual: actualStr,
-              expected: tc.expected,
-            });
-          } catch (testErr: unknown) {
-            testResults.push({
-              passed: false,
-              name: tc.description,
-              expected: tc.expected,
-              error: testErr instanceof Error ? testErr.message : String(testErr),
-            });
-          }
-        }
-      }
-
-      const duration = Math.round(performance.now() - startTime);
-      return {
-        output: logs.join('\n') || (testResults.length > 0 ? 'Executed with test assertions.' : 'Code executed successfully without console output.'),
-        executionTimeMs: duration,
-        status: testResults.some(t => !t.passed) ? 'error' : 'success',
-        testResults,
-      };
-    } else if (language === 'python') {
-      // High-fidelity client Python simulation & evaluator
-      const duration = Math.round(performance.now() - startTime) + 12;
-      const testResults: ExecutionResult['testResults'] = [];
-
-      // Extract print statements from python code for simulation
-      const printRegex = /print\s*\((.*?)\)/g;
-      let match;
-      while ((match = printRegex.exec(code)) !== null) {
-        try {
-          const evalContent = match[1];
-          logs.push(evalContent.replace(/^["']|["']$/g, ''));
-        } catch {
-          logs.push(match[1]);
-        }
-      }
-
-      if (challenge && challenge.testCases) {
-        for (const tc of challenge.testCases) {
-          testResults.push({
-            passed: true,
-            name: tc.description,
-            actual: tc.expected,
-            expected: tc.expected,
-          });
-        }
-      }
-
-      return {
-        output: logs.join('\n') || `[Python 3.12 Simulation]\nExecution completed in ${duration}ms.`,
-        executionTimeMs: duration,
-        status: 'success',
-        testResults,
-      };
-    } else if (language === 'sql') {
-      const duration = Math.round(performance.now() - startTime) + 8;
-      const sampleRows = `
-+----+----------------------+-------------------+-----------------------+
-| id | name                 | category          | created_at            |
-+----+----------------------+-------------------+-----------------------+
-|  1 | Neural Embedding Lab | GenAI Foundations | 2026-09-12 10:00:00   |
-|  2 | Vector DB RAG Cache  | GenAI Foundations | 2026-09-12 11:30:00   |
-|  3 | Socratic AI Tutor    | Fullstack Web     | 2026-09-12 14:15:00   |
-+----+----------------------+-------------------+-----------------------+
-(3 rows in set) Query executed successfully.`;
-
-      return {
-        output: `[SQL Query Engine Output]\n${code.trim()}\n\n${sampleRows}`,
-        executionTimeMs: duration,
-        status: 'success',
-      };
-    } else {
-      // HTML / CSS
-      const duration = Math.round(performance.now() - startTime);
-      return {
-        output: `[Web Canvas Renderer]\nHTML/CSS rendered into the live canvas tab.`,
-        executionTimeMs: duration,
-        status: 'success',
-      };
-    }
-  } catch (err: unknown) {
-    const duration = Math.round(performance.now() - startTime);
-    const errorMessage = err instanceof Error ? err.stack || err.message : String(err);
-    return {
-      output: logs.join('\n'),
-      error: errorMessage,
-      executionTimeMs: duration,
-      status: 'error',
-    };
-  } finally {
-    // Restore console methods
-    console.log = originalLog;
-    console.warn = originalWarn;
-    console.error = originalError;
+    const a = JSON.parse(want);
+    const b = value.json === null ? undefined : JSON.parse(value.json);
+    return b !== undefined && canonical(a) === canonical(b);
+  } catch {
+    return false;
   }
 }
 
-function formatLogArg(arg: unknown): string {
-  if (typeof arg === 'object' && arg !== null) {
-    try {
-      return JSON.stringify(arg, null, 2);
-    } catch {
-      return String(arg);
-    }
+function canonical(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(canonical).join(',')}]`;
+  if (v && typeof v === 'object') {
+    return `{${Object.keys(v as object).sort().map((k) => `${JSON.stringify(k)}:${canonical((v as Record<string, unknown>)[k])}`).join(',')}}`;
   }
-  return String(arg);
+  return JSON.stringify(v);
+}
+
+function runInWorker(
+  kind: WorkerKind,
+  payload: Record<string, unknown>,
+  onStatus?: (message: string) => void
+): Promise<WorkerReply> {
+  return new Promise((resolve) => {
+    const worker = getWorker(kind);
+    const id = nextId++;
+    // The first run of a runtime may download it (Pyodide, or the TypeScript compiler).
+    const limit = !warmed[kind] ? COLD_START_LIMIT_MS : RUN_LIMIT_MS;
+
+    const finish = (reply: WorkerReply) => {
+      clearTimeout(timer);
+      worker.removeEventListener('message', onMessage);
+      worker.removeEventListener('error', onError);
+      resolve(reply);
+    };
+    const onMessage = (event: MessageEvent<WorkerReply>) => {
+      if (event.data.id !== id) return;
+      if (event.data.type === 'status') {
+        onStatus?.(event.data.message ?? '');
+        return;
+      }
+      warmed[kind] = true;
+      finish(event.data);
+    };
+    const onError = (event: ErrorEvent) => {
+      discardWorker(kind);
+      finish({ id, type: 'error', logs: [], error: event.message || 'The runtime failed to start. Check your network connection.' });
+    };
+    const timer = setTimeout(() => {
+      discardWorker(kind);
+      finish({
+        id,
+        type: 'error',
+        logs: [],
+        error: `Stopped after ${limit / 1000} seconds. Look for an infinite loop or unbounded recursion.`,
+      });
+    }, limit);
+
+    worker.addEventListener('message', onMessage);
+    worker.addEventListener('error', onError);
+    worker.postMessage({ id, ...payload });
+  });
+}
+
+const NO_RUNTIME: Partial<Record<SupportedLanguage, string>> = {
+  cpp: 'C++',
+  c: 'C',
+  java: 'Java',
+  go: 'Go',
+};
+
+export async function executeCodeInBrowser(
+  code: string,
+  language: SupportedLanguage,
+  challenge: LabChallenge | null,
+  onStatus?: (message: string) => void
+): Promise<ExecutionResult> {
+  const startTime = performance.now();
+  const elapsed = () => Math.round(performance.now() - startTime);
+
+  if (language === 'html' || language === 'css') {
+    return { output: 'Rendered in the Web Preview tab.', executionTimeMs: elapsed(), status: 'success', isActualExecution: true };
+  }
+
+  if (NO_RUNTIME[language]) {
+    return {
+      output:
+        `${NO_RUNTIME[language]} cannot be executed in the browser, so nothing was run.\n` +
+        'Debug Code still works: it analyses the source statically and with the AI model.',
+      executionTimeMs: elapsed(),
+      status: 'idle',
+      isActualExecution: false,
+    };
+  }
+
+  const tests = (challenge?.testCases ?? []).filter((tc) => tc.input);
+  const reply =
+    language === 'python' || language === 'sql'
+      ? await runInWorker('python', { mode: language, code, tests: language === 'python' ? tests : [] }, onStatus)
+      : await runInWorker('js', { code, tests, language }, onStatus);
+
+  const output = (reply.logs ?? []).join('\n');
+  if (reply.type === 'error') {
+    return { output, error: reply.error, executionTimeMs: elapsed(), status: 'error', isActualExecution: true };
+  }
+
+  const testResults: NonNullable<ExecutionResult['testResults']> = (reply.tests ?? []).map((result, i) => {
+    const tc = tests[i];
+    if (!result.ok || !result.value) {
+      return { passed: false, name: tc.description, expected: tc.expected, error: result.error };
+    }
+    return {
+      passed: matchesExpected(result.value, tc.expected),
+      name: tc.description,
+      actual: result.value.json ?? result.value.repr,
+      expected: tc.expected,
+    };
+  });
+
+  return {
+    output: output || (testResults.length > 0 ? 'Ran with test assertions; no console output.' : 'Ran successfully with no console output.'),
+    executionTimeMs: elapsed(),
+    status: testResults.some((t) => !t.passed) ? 'error' : 'success',
+    isActualExecution: true,
+    testResults,
+  };
 }
